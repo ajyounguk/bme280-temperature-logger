@@ -1,0 +1,11 @@
+{
+  "mongourl": "myMongoURL",
+  "mongoCollection": "my_device_readings",
+  "deviceId": "kitchenPi",
+  "readingInterval": 300,
+  "BMEi2cBusNumber": 1,
+  "BMEi2cAddress": "0x76",
+  "metOReading": true,
+  "metOAPIKey" : "myMetOfficeAPIKey",
+  "metOLocationID" : 3414
+}
