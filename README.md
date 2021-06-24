@@ -5,7 +5,11 @@ This is a nodejs app design to run on Raspberry Pi's with, that will make period
 
 The app will also collect and store local meteorological data from the MetOffice so that it can be analysed and compared to local temperature readings. This option can be disabled in the config.
 
-## Contents:
+## Example log output
+![logs](/screenshots/logs.png?raw=true)
+
+
+## Contents
 - app.js = main app. 
 - /config = example configuration file 
 - /screenshots = screenshots and illustrations
