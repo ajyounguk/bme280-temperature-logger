@@ -1,7 +1,7 @@
 ## BME280 temperature logger
 
 ## What is this?
-This is a nodejs app design to run on Raspberry Pi's with, that will make periodic temperature, barometric pressure and humidity readings from a BME280 sensor, and store the data into a MongoDB database. 
+This is a nodejs app designed to run on Raspberry Pi's that will make periodic temperature, barometric pressure and humidity readings from a BME280 sensor, and store the data into a MongoDB database. 
 
 The app will also collect and store local meteorological data from the MetOffice so that it can be analysed and compared to local temperature readings. This option can be disabled in the config.
 
