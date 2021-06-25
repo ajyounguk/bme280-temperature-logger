@@ -5,6 +5,13 @@ This is a nodejs app designed to run on Raspberry Pi's that will make periodic t
 
 The app will also collect and store local meteorological data from the MetOffice so that it can be analysed and compared to local temperature readings. This option can be disabled in the config.
 
+Example:
+
+Two Raspberri Pis, capturing temperature data from two different rooms in the house (Sammy's room and Lounge) and the Metoffice data for our area (outside). Charts created with the free tier of MongoDB Charts (more info in notes below)
+![mongoChart](/screenshots/mongoChart.png?raw=true)
+
+
+
 ## Example log output
 ![logs](/screenshots/logs.png?raw=true)
 
@@ -13,13 +20,11 @@ The app will also collect and store local meteorological data from the MetOffice
 - app.js = main app. 
 - /config = example configuration file 
 - /screenshots = screenshots and illustrations
-- /test = test applications, allow you to test the MetOffice and sensor functionality in isolation. Both apps require entries in the config set
-
+- /test = test applications, allow you to test the MetOffice and sensor functionality in isolation. Both apps require entries in the config set.
 
 
 ## Installation overview
 Install git and Node.js on raspberry pi
-
 
 Clone the repo and install modules:
 
@@ -30,13 +35,13 @@ npm install
 ```
 
 ## Configuration file
-Copy the sample configuration file 
+Copy the sample configuration file:
 ```
 cd config
 cp templog-config-sample.json templog-config.json
 ```
 
-Edit the configuration file and add:
+Edit the configuration file and follow these steps:
 
 1. Set the connection string for your Mongo database:
     ```
@@ -73,7 +78,6 @@ Edit the configuration file and add:
     ```
     
 
-
 6. Enable / disable the MetOffice reading functionality:
 
     To skip the MetOffice readings, set: 
@@ -87,6 +91,7 @@ Edit the configuration file and add:
     "metOReading": true  
     ```
     and follow step 7-8
+
 
 
 7. Set the MetOffice API KEY which authorises the app to use the MetOffice APIs:
@@ -109,7 +114,6 @@ Edit the configuration file and add:
     "metOLocationID" : 3414
     ```
 
-    
 
 
 ## How to run it
@@ -120,11 +124,16 @@ node app.js
 ## Notes
 
 #### Mongo
-Mongo can be hosted anywhere and works great with free Mongo Atlas cloud DB instances.
+Mongo can be hosted anywhere, works great with a free Mongo Atlas cloud DB instances.
 
-The collection name in the configcan be anything you like. Useful if you want to separate readings from different devices into different collections or target specific preset collections.
+The collection name in the config file can be anything you like. Useful if you want to separate readings from different devices into different collections or target specific preset collections.
 
 The deviceId is used to populate the source: field in the documents, allows you to have multiple devices saving readings into the same Mongo DB/collection.
+
+The mongo document structure looks like this:
+
+![mongoDoc](/screenshots/mongoDoc.png?raw=true)
+
 
 MetOffice readings are saved into Mongo with a hardcoded source: of "outside"
 
@@ -163,10 +172,7 @@ For more information on the BME280 implementation see https://www.npmjs.com/pack
 #### Graphs!
 The free tier of Mongo Atlas supports graphs! I used these to visualise the readings from 3 different devices around the house. See https://www.mongodb.com/products/charts
 
-Example:
 
-Two Raspberri Pis, capturing temperature data from two different rooms in the house (Sammy's room and Lounge), in addition to logging the Metoffice data for our area (outside)
-![mongoChart](/screenshots/mongoChart.png?raw=true)
 
 
 
