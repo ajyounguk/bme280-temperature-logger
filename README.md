@@ -29,14 +29,14 @@ cd bme280-temperature-logger
 npm install
 ```
 
-## Mongo Credentials
-Copy the example configuration file 
+## Configuration file
+Copy the sample configuration file 
 ```
 cd config
 cp templog-config-sample.json templog-config.json
 ```
 
-Edit the config file:
+Edit the configuration file and add:
 
 1. Set the connection string for your Mongo database:
     ```
