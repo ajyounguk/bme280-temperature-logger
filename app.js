@@ -1,53 +1,54 @@
-// templog - A temperature monitor that uses the Bosch BM280 sensors to measure temperature, humidity and
-//  barometric pressure with the raspberry pi
-//
-// there are 4 key parts to this application
-//
-// 1. Logic to read in parameters from a configuration file in /config
-// 2. Logic to read the temperature, humidity and barometric pressure from the BME280 sensor
-// 3. Logic to read the outdoor temperature, humidity and barometric pressure and wind speed from the MetOffice API (once an hour)
-// 4. Logic to save the readings data to the MongoDB database
-
-
 // modules
 var mongoose = require("mongoose");
 var fs = require("fs");
 const axios = require("axios");
 const bme280 = require("bme280");
+const mqtt = require("mqtt");
 
 // load config from file
 var myConfig = JSON.parse(
   fs.readFileSync(__dirname + "/config/templog-config.json", "utf8")
 );
 
-var mongourl = myConfig.mongourl;
-var mongoCollection = myConfig.mongoCollection;
-var deviceId = myConfig.deviceId;
-var readingInterval = myConfig.readingInterval;
-var APIKey = myConfig.metOAPIKey;
-var locationID = myConfig.metOLocationID;
-var metOReading = myConfig.metOReading;
-var BMEi2cBusNumber = myConfig.BMEi2cBusNumber;
-var BMEi2cAddress = myConfig.BMEi2cAddress;
+// Extract values from config file
+var deviceId = myConfig.Application.deviceId;
+var readingInterval = myConfig.Application.readingInterval || 10;
+var BMEi2cBusNumber = myConfig.Hardware.i2cBusNumber;
+var BMEi2cAddress = myConfig.Hardware.i2cAddress;
 
+var mqttEnabled = myConfig.MQTT.enabled;
+var mqttBrokerUrl = mqttEnabled ? myConfig.MQTT.brokerUrl : null;
+var mqttTopic = mqttEnabled ? myConfig.MQTT.topic : null;
 
-// 10 seconds default readings interval if not declared
-if (readingInterval == undefined || readingInterval < 10) readingInterval = 10;
+var mongoEnabled = myConfig.MongoDB.enabled;
+var mongourl = mongoEnabled ? myConfig.MongoDB.url : null;
+var mongoCollection = mongoEnabled ? myConfig.MongoDB.collection : null;
 
-// metoffice URL parameters
-var metparams = "?res=hourly&key=" + APIKey;
+var metOReading = myConfig.MetOffice.enabled;
+var APIKey = metOReading ? myConfig.MetOffice.APIKey : null;
+var locationID = metOReading ? myConfig.MetOffice.locationID : null;
 
-// metOffice weather request URL
-var MetOfficeURL =
-  "http://datapoint.metoffice.gov.uk/public/data/val/wxobs/all/json/" +
-  locationID;
+// Ensure MongoDB is enabled
+if (!mongoEnabled || !mongourl || !mongoCollection) {
+  console.log(
+    "<FATAL> MongoDB is not properly configured. Please check your config file."
+  );
+  process.exit(1);
+}
 
-// helper functions
+// Ensure MetOffice is enabled (if using)
+var metparams = metOReading ? "?res=hourly&key=" + APIKey : null;
+var MetOfficeURL = metOReading
+  ? "http://datapoint.metoffice.gov.uk/public/data/val/wxobs/all/json/" +
+    locationID
+  : null;
+
+// Helper functions
 const format = (number) => (Math.round(number * 100) / 100).toFixed(2);
 const delay = () =>
   new Promise((resolve) => setTimeout(resolve, readingInterval * 1000));
 
-// mongo Schema
+// MongoDB schema
 var Schema = mongoose.Schema;
 var temperatureReadingSchema = new Schema({
   source: String,
@@ -58,50 +59,60 @@ var temperatureReadingSchema = new Schema({
   wind: Number,
 });
 
-// mongo Model - note: temperature_readings = target collection
+// MongoDB model
 var temperatureReadingModel = mongoose.model(
   mongoCollection,
   temperatureReadingSchema
 );
 
-// main loop async function
+// Connect to MQTT broker if enabled
+var mqttClient = null;
+if (mqttEnabled) {
+  mqttClient = mqtt.connect(mqttBrokerUrl);
+
+  mqttClient.on("connect", () => {
+    console.log("<INFO> MQTT connected to broker: " + mqttBrokerUrl);
+  });
+
+  mqttClient.on("error", (error) => {
+    console.error("<ERROR> MQTT connection error:", error);
+  });
+}
+
+// Main loop async function
 var running = true;
 
 const reportContinuous = async (_) => {
   var sensor = null;
   var reading = null;
 
-  // connect to mongo
-  try {
-    await mongoose.connect(mongourl, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+  // Connect to MongoDB
+  if (mongoEnabled) {
+    try {
+      await mongoose.connect(mongourl, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      });
+    } catch (error) {
+      console.log("<ERROR> MongoDB connection error");
+      console.error(error);
+      running = false;
+    }
+
+    mongoose.connection.on("error", (error) => {
+      console.log("<ERROR> MongoDB error");
+      console.error(error);
+      running = false;
     });
-  } catch (error) {
-    console.log(
-      "<ERROR> at " +
-        new Date() +
-        "MongoDB initial connection error - check config file"
-    );
-    console.log(JSON.stringify(error), null, 3);
-    running = false;
+
+    mongoose.connection.on("reject", (error) => {
+      console.log("<ERROR> MongoDB connection rejection error");
+      console.error(error);
+      running = false;
+    });
   }
 
-  mongoose.connection.on("error", (error) => {
-    console.log("<ERROR> at " + new Date() + "MongoDB error");
-    console.log(JSON.stringify(error), null, 3);
-    running = false;
-  });
-
-  mongoose.connection.on("reject", (error) => {
-    console.log(
-      "<ERROR> at " + new Date() + "MongoDB connection rejection error"
-    );
-    console.log(JSON.stringify(error), null, 3);
-    running = false;
-  });
-
-  // open sensor - note i2Address and i2cBusNumber may have to be changed
+  // Open sensor
   sensor = await bme280
     .open({
       i2cBusNumber: BMEi2cBusNumber,
@@ -113,30 +124,21 @@ const reportContinuous = async (_) => {
     })
     .then(sensor)
     .catch((error) => {
-      console.log(
-        "<ERROR> at " + new Date() + "BME280 sensor connection error"
-      );
-      console.log(JSON.stringify(error), null, 3);
+      console.log("<ERROR> BME280 sensor connection error");
+      console.error(error);
       running = false;
     });
 
-  // main loop
+  // Main loop
   while (running) {
-
-    // if MetOffice reading is on
-    if (metOReading) {      
-
+    // Handle MetOffice readings (if enabled)
+    if (metOReading) {
       var day = new Date().getDate();
       var month = new Date().getMonth();
       var year = new Date().getFullYear();
       var hour = new Date().getHours();
 
-      // only create a external temperature reading if no record exists in the current hour
-      // since the metoffice readings only change hour by hour
-      // this logic also ensures only one reading is created per hour should multiple devices
-      // be deployed (e.g. only 1 record per hour written across all devices, first to save the
-      // document in that hour period wins)
-
+      // Check if there is already a reading for the current hour
       temperatureReadingModel.countDocuments(
         {
           timestamp: { $gte: new Date(year, month, day, hour, 0, 0, 0) },
@@ -144,73 +146,67 @@ const reportContinuous = async (_) => {
         },
         async function (err, count) {
           if (count === 0) {
-            // get current temperature from metoffice
+            // Get current temperature from MetOffice API
             await axios
               .get(MetOfficeURL + metparams)
               .then((response) => {
-                var myj = JSON.parse(JSON.stringify(response.data));
+                var myj = response.data;
 
-                // get last metoffice observation in 24 hour dataset
-                var numPeriods = myj.SiteRep.DV.Location.Period.length;
-                var numReps =
-                  myj.SiteRep.DV.Location.Period[numPeriods - 1].Rep.length;
+                var lastPeriod =
+                  myj.SiteRep.DV.Location.Period.slice(-1)[0].Rep.slice(-1)[0];
 
-                var outdoorTemperature =
-                  myj.SiteRep.DV.Location.Period[numPeriods - 1].Rep[
-                    numReps - 1
-                  ].T;
+                var outdoorTemperature = lastPeriod.T;
+                var outdoorHumidity = lastPeriod.H;
+                var outdoorPressure = lastPeriod.P;
+                var outdoorWind = lastPeriod.S;
 
-                var outdoorHumidity =
-                  myj.SiteRep.DV.Location.Period[numPeriods - 1].Rep[
-                    numReps - 1
-                  ].H;
-
-                var outdoorPressure =
-                  myj.SiteRep.DV.Location.Period[numPeriods - 1].Rep[
-                    numReps - 1
-                  ].P;
-
-                var outdoorWind =
-                  myj.SiteRep.DV.Location.Period[numPeriods - 1].Rep[
-                    numReps - 1
-                  ].S;
-
-                // info output
+                // Log MetOffice reading
                 console.log(
-                  "<INFO> metOffice reading at " +
-                    new Date() +
-                    ":" +
-                    " outside temperature is: " +
-                    outdoorTemperature +
-                    "C"
+                  `<INFO> MetOffice reading: ${outdoorTemperature}C, ${outdoorPressure} hPa, ${outdoorHumidity}%`
                 );
 
-                // create mongo document for outdoor / metOffice readings and save
-                var temperatureReadingDocument = temperatureReadingModel({
-                  source: "outside",
-                  timestamp: new Date(),
-                  temperature: outdoorTemperature,
-                  pressure: outdoorPressure,
-                  humidity: outdoorHumidity,
-                  wind: outdoorWind,
-                });
+                if (mongoEnabled) {
+                  // Save MetOffice reading to MongoDB
+                  var temperatureReadingDocument = new temperatureReadingModel({
+                    source: "outside",
+                    timestamp: new Date(),
+                    temperature: outdoorTemperature,
+                    pressure: outdoorPressure,
+                    humidity: outdoorHumidity,
+                    wind: outdoorWind,
+                  });
 
-                temperatureReadingDocument.save(function (error) {
-                  if (error) {
-                    console.log(
-                      "<ERROR> at " +
-                        new Date() +
-                        "Error saving outdoor mongo document : ",
-                      error
-                    );
-                    running = false;
-                  }
-                });
+                  temperatureReadingDocument.save(function (error) {
+                    if (error) {
+                      console.error(
+                        "<ERROR> Error saving MetOffice reading:",
+                        error
+                      );
+                      running = false;
+                    }
+                  });
+                }
+
+                // Publish MetOffice temperature to MQTT
+                if (mqttEnabled && mqttClient) {
+                  mqttClient.publish(
+                    mqttTopic,
+                    JSON.stringify({
+                      source: "MetOffice",
+                      temperature: outdoorTemperature,
+                      humidity: outdoorHumidity,
+                      pressure: outdoorPressure,
+                      wind: outdoorWind,
+                      timestamp: new Date(),
+                    })
+                  );
+                  console.log(
+                    `<INFO> Published MetOffice temperature to MQTT: ${outdoorTemperature}C`
+                  );
+                }
               })
               .catch((error) => {
-                console.log(
-                  "<ERROR> at " + new Date() + "Metoffice API error: " + error
-                );
+                console.error("<ERROR> MetOffice API error:", error);
                 running = false;
               });
           }
@@ -218,56 +214,71 @@ const reportContinuous = async (_) => {
       );
     }
 
-    // get sensor reading
+    // Get sensor reading
     reading = await sensor.read();
 
-    // info output
+    // Log sensor reading
     console.log(
-      "<INFO> device (" +
-        deviceId +
-        ") reading at " +
-        new Date() +
-        ": " +
-        `${format(reading.temperature)}°C, ` +
-        `${format(reading.pressure)} hPa, ` +
-        `${format(reading.humidity)}%`
+      `<INFO> Device (${deviceId}) reading: ${format(
+        reading.temperature
+      )}C, ${format(reading.pressure)} hPa, ${format(reading.humidity)}%`
     );
 
-    var temperatureReadingDocument = temperatureReadingModel({
-      source: deviceId,
-      timestamp: new Date(),
-      temperature: format(reading.temperature),
-      pressure: format(reading.pressure),
-      humidity: format(reading.humidity),
-      wind: null,
-    });
+    // Save sensor reading to MongoDB
+    if (mongoEnabled) {
+      var temperatureReadingDocument = new temperatureReadingModel({
+        source: deviceId,
+        timestamp: new Date(),
+        temperature: format(reading.temperature),
+        pressure: format(reading.pressure),
+        humidity: format(reading.humidity),
+        wind: null,
+      });
 
-    temperatureReadingDocument.save(function (error) {
-      if (error) {
-        console.log(
-          "<ERROR> at " + new Date() + "Error saving reading mongo document: ",
-          error
-        );
-        running = false;
-      }
-    });
+      temperatureReadingDocument.save(function (error) {
+        if (error) {
+          console.error("<ERROR> Error saving sensor reading:", error);
+          running = false;
+        }
+      });
+    }
 
-    // wait reading interval and loop
-    if (running) await delay(readingInterval);
-  } // end of while loop
+    // Publish sensor temperature to MQTT
+    if (mqttEnabled && mqttClient) {
+      mqttClient.publish(
+        mqttTopic,
+        JSON.stringify({
+          source: deviceId,
+          temperature: format(reading.temperature),
+          humidity: format(reading.humidity),
+          pressure: format(reading.pressure),
+          wind: null,
+          timestamp: new Date(),
+        })
+      );
+      console.log(
+        `<INFO> Published sensor temperature to MQTT: ${format(
+          reading.temperature
+        )}C`
+      );
+    }
 
-  // close connections
+    // Wait for the next reading interval
+    if (running) await delay();
+  }
+
+  // Close sensor and MongoDB connection when done
   await sensor.close();
-
   await mongoose.connection.close();
-  console.log("<ERROR> at " + new Date() + "device stopped");
+  console.log("<INFO> Device stopped");
 };
 
-// run
-console.log("<INFO> device starting");
-if (running)
+// Run the main process
+console.log("<INFO> Device starting");
+if (running) {
   reportContinuous().catch((error) => {
     running = false;
-    console.log("<FATAL> at " + new Date() + "stopping ", error);
-    process.exit();
+    console.error("<FATAL> Device stopping:", error);
+    process.exit(1);
   });
+}

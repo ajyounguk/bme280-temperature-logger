@@ -1,11 +1,24 @@
 {
-  "mongourl": "myMongoURL",
-  "mongoCollection": "my_device_readings",
-  "deviceId": "kitchenPi",
-  "readingInterval": 300,
-  "BMEi2cBusNumber": 1,
-  "BMEi2cAddress": "0x76",
-  "metOReading": true,
-  "metOAPIKey" : "myMetOfficeAPIKey",
-  "metOLocationID" : 3414
+  "Application": {
+    "deviceId": "kitchenPi",
+    "readingInterval": 300
+  },
+  "Hardware": {
+    "i2cBusNumber": 1,
+    "i2cAddress": "0x76"
+  },
+  "MQTT": {
+    "enabled": true,
+     "brokerUrl": "mqtt://your-mqtt-broker"
+  },
+  "MongoDB": {
+    "enabled": true,
+    "url": "myMongoURL",
+    "collection": "my_device_readings"
+  },
+  "MetOffice": {
+    "enabled": true,
+    "APIKey": "myMetOfficeAPIKey",
+    "locationID": 3414
+  }
 }
