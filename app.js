@@ -20,6 +20,11 @@ var mqttEnabled = myConfig.MQTT.enabled;
 var mqttBrokerUrl = mqttEnabled ? myConfig.MQTT.brokerUrl : null;
 var mqttTopic = mqttEnabled ? myConfig.MQTT.topic : null;
 
+var mqttOptions = {
+  username: myConfig.MQTT.username,
+  password: myConfig.MQTT.password
+};
+
 var mongoEnabled = myConfig.MongoDB.enabled;
 var mongourl = mongoEnabled ? myConfig.MongoDB.url : null;
 var mongoCollection = mongoEnabled ? myConfig.MongoDB.collection : null;
@@ -70,6 +75,10 @@ if (mongoEnabled) {
 
 }
 
+
+
+
+mqttClient = mqtt.connect(mqttBrokerUrl, mqttOptions);
 
 
 
