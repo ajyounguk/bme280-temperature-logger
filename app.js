@@ -28,7 +28,7 @@ var metOReading = myConfig.MetOffice.enabled;
 var APIKey = metOReading ? myConfig.MetOffice.APIKey : null;
 var locationID = metOReading ? myConfig.MetOffice.locationID : null;
 
-console.log(mongoEnabled + " " + mongourl + " " + mongoCollection)
+
 
 // Ensure MongoDB is enabled
 if ((mongoEnabled && !mongourl) || (mongoEnabled && !mongoCollection)) {
@@ -263,7 +263,14 @@ const reportContinuous = async (_) => {
           wind: null,
           timestamp: new Date(),
         })
-      );
+
+
+      ).catch((error) => {
+        console.error("<ERROR> MQTT error:", error);
+        running = false;
+      });
+
+
       console.log(
         `<INFO> Published sensor temperature to MQTT: ${format(
           reading.temperature
