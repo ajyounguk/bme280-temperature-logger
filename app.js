@@ -28,8 +28,10 @@ var metOReading = myConfig.MetOffice.enabled;
 var APIKey = metOReading ? myConfig.MetOffice.APIKey : null;
 var locationID = metOReading ? myConfig.MetOffice.locationID : null;
 
+console.log(mongoEnabled + " " + mongourl + " " + mongoCollection)
+
 // Ensure MongoDB is enabled
-if (!mongoEnabled || !mongourl || !mongoCollection) {
+if ((mongoEnabled && !mongourl) || (mongoEnabled && !mongoCollection)) {
   console.log(
     "<FATAL> MongoDB is not properly configured. Please check your config file."
   );
@@ -40,7 +42,7 @@ if (!mongoEnabled || !mongourl || !mongoCollection) {
 var metparams = metOReading ? "?res=hourly&key=" + APIKey : null;
 var MetOfficeURL = metOReading
   ? "http://datapoint.metoffice.gov.uk/public/data/val/wxobs/all/json/" +
-    locationID
+  locationID
   : null;
 
 // Helper functions
@@ -48,22 +50,28 @@ const format = (number) => (Math.round(number * 100) / 100).toFixed(2);
 const delay = () =>
   new Promise((resolve) => setTimeout(resolve, readingInterval * 1000));
 
-// MongoDB schema
-var Schema = mongoose.Schema;
-var temperatureReadingSchema = new Schema({
-  source: String,
-  timestamp: Date,
-  temperature: Number,
-  pressure: Number,
-  humidity: Number,
-  wind: Number,
-});
+if (mongoEnabled) {
+  // MongoDB schema
+  var Schema = mongoose.Schema;
+  var temperatureReadingSchema = new Schema({
+    source: String,
+    timestamp: Date,
+    temperature: Number,
+    pressure: Number,
+    humidity: Number,
+    wind: Number,
+  });
 
-// MongoDB model
-var temperatureReadingModel = mongoose.model(
-  mongoCollection,
-  temperatureReadingSchema
-);
+  // MongoDB model
+  var temperatureReadingModel = mongoose.model(
+    mongoCollection,
+    temperatureReadingSchema
+  );
+
+}
+
+
+
 
 // Connect to MQTT broker if enabled
 var mqttClient = null;
@@ -280,5 +288,8 @@ if (running) {
     running = false;
     console.error("<FATAL> Device stopping:", error);
     process.exit(1);
-  });
+  })
 }
+
+
+
