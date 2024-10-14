@@ -33,8 +33,6 @@ var metOReading = myConfig.MetOffice.enabled;
 var APIKey = metOReading ? myConfig.MetOffice.APIKey : null;
 var locationID = metOReading ? myConfig.MetOffice.locationID : null;
 
-
-
 // Ensure MongoDB is enabled
 if ((mongoEnabled && !mongourl) || (mongoEnabled && !mongoCollection)) {
   console.log(
@@ -72,20 +70,12 @@ if (mongoEnabled) {
     mongoCollection,
     temperatureReadingSchema
   );
-
 }
-
-
-
-
-mqttClient = mqtt.connect(mqttBrokerUrl, mqttOptions);
-
-
 
 // Connect to MQTT broker if enabled
 var mqttClient = null;
 if (mqttEnabled) {
-  mqttClient = mqtt.connect(mqttBrokerUrl);
+  mqttClient = mqtt.connect(mqttBrokerUrl, mqttOptions);
 
   mqttClient.on("connect", () => {
     console.log("<INFO> MQTT connected to broker: " + mqttBrokerUrl);
@@ -130,21 +120,20 @@ const reportContinuous = async (_) => {
   }
 
   // Open sensor
-  sensor = await bme280
-    .open({
+  try {
+    sensor = await bme280.open({
       i2cBusNumber: BMEi2cBusNumber,
       i2cAddress: Number(BMEi2cAddress),
       humidityOversampling: bme280.OVERSAMPLE.X1,
       pressureOversampling: bme280.OVERSAMPLE.X16,
       temperatureOversampling: bme280.OVERSAMPLE.X2,
       filterCoefficient: bme280.FILTER.F16,
-    })
-    .then(sensor)
-    .catch((error) => {
-      console.log("<ERROR> BME280 sensor connection error");
-      console.error(error);
-      running = false;
     });
+  } catch (error) {
+    console.log("<ERROR> BME280 sensor connection error");
+    console.error(error);
+    running = false;
+  }
 
   // Main loop
   while (running) {
@@ -193,15 +182,15 @@ const reportContinuous = async (_) => {
                     wind: outdoorWind,
                   });
 
-                  temperatureReadingDocument.save(function (error) {
-                    if (error) {
-                      console.error(
-                        "<ERROR> Error saving MetOffice reading:",
-                        error
-                      );
-                      running = false;
-                    }
-                  });
+                  try {
+                    await temperatureReadingDocument.save();
+                  } catch (error) {
+                    console.error(
+                      "<ERROR> Error saving MetOffice reading:",
+                      error
+                    );
+                    running = false;
+                  }
                 }
 
                 // Publish MetOffice temperature to MQTT
@@ -252,12 +241,12 @@ const reportContinuous = async (_) => {
         wind: null,
       });
 
-      temperatureReadingDocument.save(function (error) {
-        if (error) {
-          console.error("<ERROR> Error saving sensor reading:", error);
-          running = false;
-        }
-      });
+      try {
+        await temperatureReadingDocument.save();
+      } catch (error) {
+        console.error("<ERROR> Error saving sensor reading:", error);
+        running = false;
+      }
     }
 
     // Publish sensor temperature to MQTT
@@ -272,19 +261,9 @@ const reportContinuous = async (_) => {
           wind: null,
           timestamp: new Date(),
         })
-
-
-      ).catch((error) => {
-        console.error("<ERROR> MQTT error:", error);
-        running = false;
-      });
-
-
-      console.log(
-        `<INFO> Published sensor temperature to MQTT: ${format(
-          reading.temperature
-        )}C`
       );
+
+      console.log(`<INFO> Published sensor temperature to MQTT: ${format(reading.temperature)}C`);
     }
 
     // Wait for the next reading interval
@@ -292,8 +271,9 @@ const reportContinuous = async (_) => {
   }
 
   // Close sensor and MongoDB connection when done
-  await sensor.close();
-  await mongoose.connection.close();
+  if (sensor) await sensor.close();
+  if (mongoEnabled) await mongoose.connection.close();
+  if (mqttEnabled && mqttClient) mqttClient.end();
   console.log("<INFO> Device stopped");
 };
 
@@ -304,8 +284,5 @@ if (running) {
     running = false;
     console.error("<FATAL> Device stopping:", error);
     process.exit(1);
-  })
+  });
 }
-
-
-
