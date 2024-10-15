@@ -1,7 +1,7 @@
 const axios = require("axios");
 
 // Fetch MetOffice data and save it to MongoDB, publish to MQTT
-const gethMetOfficeData = async (myConfig) => {
+const getMetOfficeData = async (locationID, APIKey) => {
   const url = `http://datapoint.metoffice.gov.uk/public/data/val/wxobs/all/json/${locationID}?res=hourly&key=${APIKey}`;
   try {
     const response = await axios.get(url);
@@ -14,14 +14,16 @@ const gethMetOfficeData = async (myConfig) => {
     };
 
     console.log(
-      `<INFO> MetOffice reading: ${outdoorData.temperature}C, ${outdoorData.pressure} hPa, ${outdoorData.humidity}%`
-    )
+      `<INFO> MetOffice reading: ${outdoorData.temperature}C, ${outdoorData.pressure} hPa, ${outdoorData.humidity} %`);
+     
+      return outdoorData; 
 
     }  catch (error) {
       console.error("<ERROR> Axios Metoffice error:", error);
 
     }
 
+
   }
 
-  module.exports = { ...exports };
+  module.exports = { getMetOfficeData };

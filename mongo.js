@@ -14,6 +14,13 @@ const mongoConnect = async (url) => {
 
 // Function to dynamically create a schema/model for the specified collection
 const temperatureModel = (collection) => {
+
+  // if the model already exists return it
+  if (mongoose.models[collection]) {
+    return mongoose.models[collection];
+  }
+
+
   const temperatureReadingSchema = new mongoose.Schema({
     source: String,
     timestamp: { type: Date, default: Date.now },
@@ -33,7 +40,6 @@ const saveToMongo = async (data, collection) => {
   const reading = new temperatureReadingModel(data);
   try {
     await reading.save();
-    console.log("<INFO> Saved reading to MongoDB in collection:", collection);
   } catch (error) {
     console.error("<ERROR> MongoDB save error:", error);
   }

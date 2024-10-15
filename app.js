@@ -13,25 +13,11 @@ const myConfig = JSON.parse(
 );
 
 // Helper function for reading/loop delay
-const delay = () => new Promise((resolve) => setTimeout(resolve, readingInterval * 1000));
+const delay = () => new Promise((resolve) => setTimeout(resolve, myConfig.General.readingInterval * 1000));
 
-const temperatureReading = {
-  sensor: {
-    temperature : 0,  
-    humidity : 0,
-    pressure : 0
-  },
-  metOffice: {
-    temperature : 0,
-    humidity : 0,
-    pressure : 0,
-    wind : 0
-  }
-};
 
 // init running flag
-let running = false;
-
+let running = true;
 
 // Connect to MongoDB if enabled (via mongo.js)
 if (myConfig.MongoDB.enabled) {
@@ -50,10 +36,10 @@ if (myConfig.MQTT.enabled) {
 try {
    sensor.initSensor(myConfig.Hardware.i2cBusNumber, myConfig.Hardware.i2cAddress);
 } catch (error) {
-  running = false;
   console.log(
     "<ERROR> Sensor initialisation failed with " + error
   );
+  running = false;
   return; // Exit if sensor cannot be initialized
 }
 
@@ -61,7 +47,7 @@ try {
 
 
 // Main async loop
-const reportContinuous = async () => {
+const reportContinuous = async (running) => {
 
   // Graceful shutdown
   process.on("SIGINT", () => {
@@ -69,39 +55,75 @@ const reportContinuous = async () => {
   });
 
   while (running) {
+
     try {
       // Fetch MetOffice data and save it to MongoDB, publish to MQTT
-      await metoffice.fetchMetOfficeData(myConfig);
 
-      // Get sensor reading
+      if (myConfig.MetOffice.enabled) {
+
+        metOfficeData = await metoffice.getMetOfficeData(myConfig.MetOffice.locationID, myConfig.MetOffice.APIKey);      
+
+      // Save metOffice data to MongoDB
+      if (myConfig.MongoDB.enabled) {
+        await mongo.saveToMongo({
+          source: 'metOffice',
+          temperature: metOfficeData.temperature,
+          pressure: metOfficeData.pressure,
+          humidity: metOfficeData.humidity,
+          wind :metOfficeData.wind
+        }, myConfig.MongoDB.collection);
+      }
+
+      if (myConfig.MQTT.enabled) {
+          // Publish MetOffice data to MQTT
+          mqtt.publishToMQTT('metOffice', {
+          temperature: metOfficeData.temperature,
+          pressure: metOfficeData.pressure,
+          humidity: metOfficeData.humidity,
+          wind: metOfficeData.wind
+          });
+        }
+      }
+  
+
+    // Get sensor reading
       const sensorData = await sensor.getSensorReading();
-      const { temperature, pressure, humidity } = sensorData;
 
       // Log sensor data
       console.log(
-        `<INFO> Device (${deviceId}) reading: ${temperature}C, ${pressure} hPa, ${humidity}%`
+        `<INFO> Device (${myConfig.General.deviceId}) reading: ${sensorData.temperature}C, ${sensorData.pressure} hPa, ${sensorData.humidity}%`
       );
 
       // Save sensor data to MongoDB
-      await mongo.saveToMongo({
-        source: deviceId,
-        temperature,
-        pressure,
-        humidity,
-      }, myConfig.MongoDB.collection);
+      if (myConfig.MongoDB.enabled) {
+        await mongo.saveToMongo({
+          source: myConfig.General.deviceId,
+          temperature: sensorData.temperature,
+          pressure: sensorData.pressure,
+          humidity: sensorData.humidity,
+          wind : null
+        }, myConfig.MongoDB.collection);
 
-      // Publish sensor data to MQTT
-      mqtt.publishToMQTT(deviceId, {
-        temperature,
-        pressure,
-        humidity,
-      });
+      }
 
-      // Wait for the next reading
-      await delay();
+      if (myConfig.MQTT.enabled) {
+        // Publish sensor data to MQTT
+        mqtt.publishToMQTT('bme380sensor', {
+        temperature: sensorData.temperature,
+        pressure: sensorData.pressure,
+        humidity: sensorData.humidity,
+        wind: null
+        });
+      }
     } catch (error) {
-      console.error("<ERROR> Error during reading or publishing:", error);
+      console.error("<ERROR> Unkown location", error);
+      process.exit(1);
     }
+
+    
+      // Wait for the next reading
+    await delay();
+  
   }
 
   // Close connections when done
@@ -109,8 +131,9 @@ const reportContinuous = async () => {
   console.log("<INFO> Device stopped");
 };
 
+
 // Start the process
-reportContinuous().catch((error) => {
+reportContinuous(running).catch((error) => {
   console.error("<FATAL> Device stopping:", error);
   process.exit(1);
 });
