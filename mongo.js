@@ -1,21 +1,9 @@
 const mongoose = require("mongoose");
 
-// MongoDB schema
-const temperatureReadingSchema = new mongoose.Schema({
-  source: String,
-  timestamp: { type: Date, default: Date.now },
-  temperature: Number,
-  pressure: Number,
-  humidity: Number,
-  wind: Number,
-});
-
-// MongoDB model
-const temperatureReadingModel = mongoose.model("TemperatureReading", temperatureReadingSchema);
-
 // Connect to MongoDB
-const mongoConnect = async (url) => {
+const mongoConnect = async (myConfig) => {
   try {
+
     await mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
     console.log("<INFO> Connected to MongoDB");
   } catch (error) {
@@ -24,12 +12,28 @@ const mongoConnect = async (url) => {
   }
 };
 
+// Function to dynamically create a schema/model for the specified collection
+const createTemperatureModel = (collection) => {
+  const temperatureReadingSchema = new mongoose.Schema({
+    source: String,
+    timestamp: { type: Date, default: Date.now },
+    temperature: Number,
+    pressure: Number,
+    humidity: Number,
+    wind: Number,
+  });
+
+  // Create model for the collection
+  return mongoose.model(collection, temperatureReadingSchema);
+};
+
 // Save data to MongoDB
-const saveToMongo = async (data) => {
+const saveToMongo = async (data, collection) => {
+  const temperatureReadingModel = createTemperatureModel(collection);
   const reading = new temperatureReadingModel(data);
   try {
     await reading.save();
-    console.log("<INFO> Saved reading to MongoDB");
+    console.log("<INFO> Saved reading to MongoDB in collection:", collection);
   } catch (error) {
     console.error("<ERROR> MongoDB save error:", error);
   }

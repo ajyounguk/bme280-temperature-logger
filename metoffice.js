@@ -20,20 +20,14 @@ const fetchMetOfficeData = async (config, saveToMongo, publishToMQTT) => {
       `<INFO> MetOffice reading: ${outdoorData.temperature}C, ${outdoorData.pressure} hPa, ${outdoorData.humidity}%`
     );
 
-    // Save to MongoDB
+    // Save MetOffice data to MongoDB using the specified collection
     await saveToMongo({
       source: "outside",
       temperature: outdoorData.temperature,
       pressure: outdoorData.pressure,
       humidity: outdoorData.humidity,
       wind: outdoorData.wind,
-    });
-
-    // Publish to MQTT
-    publishToMQTT("MetOffice", outdoorData);
-  } catch (error) {
-    console.error("<ERROR> MetOffice API error:", error);
-  }
+    }, config.MongoDB.collection); // Pass the collection from the config
 };
 
 module.exports = { fetchMetOfficeData };
