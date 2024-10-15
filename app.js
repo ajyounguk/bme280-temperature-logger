@@ -81,7 +81,7 @@ const reportContinuous = async (running) => {
           pressure: metOfficeData.pressure,
           humidity: metOfficeData.humidity,
           wind: metOfficeData.wind
-          });
+          }, myConfig.MQTT.topic);
         }
       }
   
@@ -113,7 +113,7 @@ const reportContinuous = async (running) => {
         pressure: sensorData.pressure,
         humidity: sensorData.humidity,
         wind: null
-        });
+        }, myConfig.MQTT.topic);
       }
     } catch (error) {
       console.error("<ERROR> Unkown location", error);

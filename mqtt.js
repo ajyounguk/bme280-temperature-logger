@@ -16,11 +16,11 @@ const mqttConnect = (brokerUrl, mqttOptions) => {
 };
 
 // Publish data to MQTT
-const publishToMQTT = (source, data) => {
+const publishToMQTT = (source, data, topic) => {
   if (!mqttClient) return;
 
   mqttClient.publish(
-    "temperature/reading",
+    topic,
     JSON.stringify({ source, ...data, timestamp: new Date() })
   );
 
