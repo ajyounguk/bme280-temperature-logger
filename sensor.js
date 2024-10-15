@@ -52,9 +52,4 @@ const closeSensor = async () => {
   }
 };
 
-module.exports = {
-  openSensor,
-  getSensorReading,
-  closeSensor,
-};
-
+module.exports = { initSensor, getSensorReading,  closeSensor};

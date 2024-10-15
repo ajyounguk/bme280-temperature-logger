@@ -27,4 +27,4 @@ const publishToMQTT = (source, data) => {
   console.log(`<INFO> Published ${source} data to MQTT`);
 };
 
-module.exports = { publishToMQTT, mqttConnect };
+module.exports = { mqttConnect, publishToMQTT };

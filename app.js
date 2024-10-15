@@ -12,20 +12,25 @@ const myConfig = JSON.parse(
   fs.readFileSync(__dirname + "/config/templog-config.json", "utf8")
 );
 
-
-
 // Helper function for reading/loop delay
 const delay = () => new Promise((resolve) => setTimeout(resolve, readingInterval * 1000));
 
+const temperatureReading = {
+  sensor: {
+    temperature : 0,  
+    humidity : 0,
+    pressure : 0
+  },
+  metOffice: {
+    temperature : 0,
+    humidity : 0,
+    pressure : 0,
+    wind : 0
+  }
+};
 
-
-let temperatureReading = {
-  temperature,
-  humidity, 
-  pressure,
-  wind
-}
-
+// init running flag
+let running = false;
 
 
 // Connect to MongoDB if enabled (via mongo.js)
@@ -43,8 +48,7 @@ if (myConfig.MQTT.enabled) {
 
 // Initialise BME280 sensor (via sensor.js)
 try {
-  await sensor.initSensor( myConfig.Hardware.i2cBusNumber;
-    , myConfig.Hardware.i2cAddress;);
+   sensor.initSensor(myConfig.Hardware.i2cBusNumber, myConfig.Hardware.i2cAddress);
 } catch (error) {
   running = false;
   console.log(
@@ -54,11 +58,11 @@ try {
 }
 
 
-let running = true;
+
 
 // Main async loop
 const reportContinuous = async () => {
-  
+
   // Graceful shutdown
   process.on("SIGINT", () => {
     running = false;
@@ -67,7 +71,7 @@ const reportContinuous = async () => {
   while (running) {
     try {
       // Fetch MetOffice data and save it to MongoDB, publish to MQTT
-      await metoffice.fetchMetOfficeData(myConfig, mongo.saveToMongo, mqtt.publishToMQTT);
+      await metoffice.fetchMetOfficeData(myConfig);
 
       // Get sensor reading
       const sensorData = await sensor.getSensorReading();
