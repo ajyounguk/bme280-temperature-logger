@@ -11,20 +11,18 @@ const mqttConnect = (brokerUrl, mqttOptions) => {
   });
 
   mqttClient.on("error", (error) => {
-    console.error("<ERROR> MQTT connection error:", error);
+    console.  error("<ERROR> MQTT connection error:", error);
   });
 };
 
 // Publish data to MQTT
-const publishToMQTT = (source, data, topic) => {
+const publishToMQTT = ( data, topic) => {
   if (!mqttClient) return;
 
   mqttClient.publish(
     topic,
-    JSON.stringify({ source, ...data, timestamp: new Date() })
+    JSON.stringify({  ...data, timestamp: new Date() })
   );
-
-  console.log(`<INFO> Published ${source} data to MQTT`);
 };
 
 module.exports = { mqttConnect, publishToMQTT };

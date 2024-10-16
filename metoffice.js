@@ -13,9 +13,6 @@ const getMetOfficeData = async (locationID, APIKey) => {
       wind: lastPeriod.S,
     };
 
-    console.log(
-      `<INFO> MetOffice reading: ${outdoorData.temperature}C, ${outdoorData.pressure} hPa, ${outdoorData.humidity} %`);
-     
       return outdoorData; 
 
     }  catch (error) {

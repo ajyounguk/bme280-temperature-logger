@@ -34,7 +34,7 @@ if (myConfig.MQTT.enabled) {
 
 // Initialise BME280 sensor (via sensor.js)
 try {
-   sensor.initSensor(myConfig.Hardware.i2cBusNumber, myConfig.Hardware.i2cAddress);
+   sensor.initSensor(myConfig.Sensor.i2cBusNumber, myConfig.Sensor.i2cAddress);
 } catch (error) {
   console.log(
     "<ERROR> Sensor initialisation failed with " + error
@@ -59,45 +59,54 @@ const reportContinuous = async (running) => {
     try {
       // Fetch MetOffice data and save it to MongoDB, publish to MQTT
 
+
+      // METOFFICE
+      // Get MetOffice reading and send to Mongo / MQTT
       if (myConfig.MetOffice.enabled) {
 
-        metOfficeData = await metoffice.getMetOfficeData(myConfig.MetOffice.locationID, myConfig.MetOffice.APIKey);      
+        metOfficeData = await metoffice.getMetOfficeData(myConfig.MetOffice.locationID, myConfig.MetOffice.APIKey);    
+        
+        console.log(
+          `<INFO> Device (${myConfig.MetOffice.deviceId}) reading: ${metOfficeData.temperature}C, ${metOfficeData.pressure} hPa, ${metOfficeData.humidity}%, ${metOfficeData.wind} mph`
+        );
+  
 
-      // Save metOffice data to MongoDB
-      if (myConfig.MongoDB.enabled) {
-        await mongo.saveToMongo({
-          source: 'metOffice',
-          temperature: metOfficeData.temperature,
-          pressure: metOfficeData.pressure,
-          humidity: metOfficeData.humidity,
-          wind :metOfficeData.wind
-        }, myConfig.MongoDB.collection);
-      }
+        // Save metOffice data to MongoDB
+        if (myConfig.MongoDB.enabled) {
+          await mongo.saveToMongo({
+            source: myConfig.MetOffice.deviceId,
+            temperature: metOfficeData.temperature,
+            pressure: metOfficeData.pressure,
+            humidity: metOfficeData.humidity,
+            wind :metOfficeData.wind
+          }, myConfig.MongoDB.collection);
+        }
 
-      if (myConfig.MQTT.enabled) {
-          // Publish MetOffice data to MQTT
-          mqtt.publishToMQTT('metOffice', {
-          temperature: metOfficeData.temperature,
-          pressure: metOfficeData.pressure,
-          humidity: metOfficeData.humidity,
-          wind: metOfficeData.wind
-          }, myConfig.MQTT.topic);
+        if (myConfig.MQTT.enabled) {
+            // Publish MetOffice data to MQTT
+            mqtt.publishToMQTT({
+            source: myConfig.MetOffice.deviceId,
+            temperature: metOfficeData.temperature,
+            pressure: metOfficeData.pressure,
+            humidity: metOfficeData.humidity,
+            wind: metOfficeData.wind
+            }, myConfig.MetOffice.MQTTtopic);
         }
       }
   
-
-    // Get sensor reading
+      // SENSOR
+      // Get sensor reading and send to Mongo And/OR MQTT
       const sensorData = await sensor.getSensorReading();
 
       // Log sensor data
       console.log(
-        `<INFO> Device (${myConfig.General.deviceId}) reading: ${sensorData.temperature}C, ${sensorData.pressure} hPa, ${sensorData.humidity}%`
+        `<INFO> Device (${myConfig.Sensor.deviceId}) reading: ${sensorData.temperature}C, ${sensorData.pressure} hPa, ${sensorData.humidity}%`
       );
 
       // Save sensor data to MongoDB
       if (myConfig.MongoDB.enabled) {
         await mongo.saveToMongo({
-          source: myConfig.General.deviceId,
+          source: myConfig.Sensor.deviceId,
           temperature: sensorData.temperature,
           pressure: sensorData.pressure,
           humidity: sensorData.humidity,
@@ -108,20 +117,23 @@ const reportContinuous = async (running) => {
 
       if (myConfig.MQTT.enabled) {
         // Publish sensor data to MQTT
-        mqtt.publishToMQTT('bme380sensor', {
-        temperature: sensorData.temperature,
-        pressure: sensorData.pressure,
-        humidity: sensorData.humidity,
-        wind: null
-        }, myConfig.MQTT.topic);
+        mqtt.publishToMQTT({
+          source: myConfig.Sensor.deviceId,
+          temperature: sensorData.temperature,
+          pressure: sensorData.pressure,
+          humidity: sensorData.humidity,
+          wind: null
+          }, myConfig.Sensor.MQTTtopic);
       }
+
+    // main loop error handling
     } catch (error) {
-      console.error("<ERROR> Unkown location", error);
+      console.error("<ERROR>", error);
       process.exit(1);
     }
 
     
-      // Wait for the next reading
+    // Wait for the next reading
     await delay();
   
   }
