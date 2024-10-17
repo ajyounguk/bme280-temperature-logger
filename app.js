@@ -2,10 +2,12 @@
 
 // Required modules
 const fs = require("fs");
-const mqtt = require("./mqtt");
-const mongo = require("./mongo");
-const metoffice = require("./metoffice");
-const sensor = require("./sensor");
+
+// Custom modules (mqtt, mongo, metoffice and sensor concerns)
+const mqtt = require("./src/mqtt");
+const mongo = require("./src//mongo");
+const metoffice = require("./src//metoffice");
+const sensor = require("./src//sensor");
 
 // Load config from file
 const myConfig = JSON.parse(
@@ -13,7 +15,7 @@ const myConfig = JSON.parse(
 );
 
 // Helper function for reading/loop delay
-const delay = () => new Promise((resolve) => setTimeout(resolve, myConfig.General.readingInterval * 1000));
+const delay = () => new Promise((resolve) => setTimeout(resolve, myConfig.General.readingIntervalSeconds * 1000));
 
 
 // init running flag
@@ -64,7 +66,7 @@ const reportContinuous = async (running) => {
       // Get MetOffice reading and send to Mongo / MQTT
       if (myConfig.MetOffice.enabled) {
 
-        metOfficeData = await metoffice.getMetOfficeData(myConfig.MetOffice.locationID, myConfig.MetOffice.APIKey);    
+        metOfficeData = await metoffice.getMetOfficeData(myConfig.MetOffice.locationID, myConfig.MetOffice.apiKey );    
         
         console.log(
           `<INFO> [${new Date().toLocaleString()}] - Device (${myConfig.MetOffice.deviceId}) reading: ${metOfficeData.temperature}C, ${metOfficeData.pressure} hPa, ${metOfficeData.humidity}%, ${metOfficeData.wind} mph`
