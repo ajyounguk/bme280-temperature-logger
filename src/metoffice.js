@@ -1,4 +1,5 @@
 const axios = require("axios");
+const logger = require("./logger");
 
 // Fetch MetOffice data and save it to MongoDB, publish to MQTT
 const getMetOfficeData = async (locationID, APIKey) => {
@@ -19,8 +20,6 @@ const getMetOfficeData = async (locationID, APIKey) => {
       console.error("<ERROR> Axios Metoffice error:", error);
 
     }
-
-
   }
 
   module.exports = { getMetOfficeData };

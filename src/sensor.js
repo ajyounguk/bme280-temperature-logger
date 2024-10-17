@@ -1,6 +1,5 @@
-// sensor.js
-
 const bme280 = require("bme280");
+const logger = require("./logger");
 
 // Helper function to format sensor readings
 const format = (number) => (Math.round(number * 100) / 100).toFixed(2);
@@ -10,16 +9,14 @@ let sensor = null;
 // Open BME280 sensor automatically when this module is required
 const initSensor = async (i2cBusNumber, i2cAddress) => {
     try {
-   
-  
       sensor = await bme280.open({
         i2cBusNumber,
         i2cAddress: Number(i2cAddress),
       });
   
-      console.log("<INFO> BME280 sensor initialized");
+      logger.createLog("INFO", "Sensor initialized");
     } catch (error) {
-      console.error("<ERROR> BME280 sensor connection error:", error);
+      logger.createLog("ERROR", "Sensor connection error:"+ error);
       throw error;
     }
   };
@@ -39,7 +36,7 @@ const getSensorReading = async () => {
       humidity: format(humidity),
     };
   } catch (error) {
-    console.error("<ERROR> Failed to read sensor data:", error);
+    logger.log("ERROR", "Failed to read sensor data:"+ error);
     throw error;
   }
 };
@@ -48,7 +45,7 @@ const getSensorReading = async () => {
 const closeSensor = async () => {
   if (sensor) {
     await sensor.close();
-    console.log("<INFO> BME280 sensor connection closed");
+    logger.createLog("<INFO> BME280 sensor connection closed");
   }
 };
 

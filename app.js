@@ -5,9 +5,10 @@ const fs = require("fs");
 
 // Custom modules (mqtt, mongo, metoffice and sensor concerns)
 const mqtt = require("./src/mqtt");
-const mongo = require("./src//mongo");
-const metoffice = require("./src//metoffice");
-const sensor = require("./src//sensor");
+const mongo = require("./src/mongo");
+const metoffice = require("./src/metoffice");
+const sensor = require("./src/sensor");
+const logger = require("./src/logger");
 
 // Load config from file
 const myConfig = JSON.parse(
@@ -17,14 +18,13 @@ const myConfig = JSON.parse(
 // Helper function for reading/loop delay
 const delay = () => new Promise((resolve) => setTimeout(resolve, myConfig.General.readingIntervalSeconds * 1000));
 
-
 // init running flag
 let running = true;
 
 
 // report status 
+logger.createLog ("INFO", "Starting with status - MetOffice: " + myConfig.MetOffice.enabled + ", MQTT: " + myConfig.MQTT.enabled + ", MongoDB: " + myConfig.MongoDB.enabled)
 
-console.log (`<INFO> [${new Date().toISOString()}]- Starting with status - MetOffice: ${myConfig.MetOffice.enabled}, MQTT: ${myConfig.MQTT.enabled}, MongoDB: ${myConfig.MongoDB.enabled}`)
 
 // Connect to MongoDB if enabled (via mongo.js)
 if (myConfig.MongoDB.enabled) {
@@ -43,9 +43,9 @@ if (myConfig.MQTT.enabled) {
 try {
    sensor.initSensor(myConfig.Sensor.i2cBusNumber, myConfig.Sensor.i2cAddress);
 } catch (error) {
-  console.log(
-    "<ERROR> Sensor initialisation failed with " + error
-  );
+
+  logger.createLog ("ERROR", "Sensor initialisation failed with" + error)
+
   running = false;
   return; // Exit if sensor cannot be initialized
 }
@@ -67,21 +67,16 @@ const reportContinuous = async (running) => {
       // Fetch MetOffice data and save it to MongoDB, publish to MQTT
 
 
-      // METOFFICE
+      // METOFFICE =======================================================================================================================================
+
       // Get MetOffice reading and send to Mongo / MQTT
       if (myConfig.MetOffice.enabled) {
 
         metOfficeData = await metoffice.getMetOfficeData(myConfig.MetOffice.locationID, myConfig.MetOffice.apiKey );    
 
-        console.log(
-          `<INFO> [${new Date().toISOString()}] - Device (${myConfig.MetOffice.deviceId})\treading: ${metOfficeData.temperature}C, ${metOfficeData.pressure} hPa, ${metOfficeData.humidity}%, ${metOfficeData.wind} mph`
-        );
+        logger.createLog ("INFO", "Device (" + myConfig.MetOffice.deviceId +")\treading: " + metOfficeData.temperature + "C, "+ metOfficeData.pressure + " hPa, " + metOfficeData.humidity +"%, " + metOfficeData.wind +" mph" )
         
-        
-        
-        
-  
-
+      
         // Save metOffice data to MongoDB
         if (myConfig.MongoDB.enabled) {
           await mongo.saveToMongo({
@@ -93,8 +88,9 @@ const reportContinuous = async (running) => {
           }, myConfig.MongoDB.collection, true);
         }
 
+         // Publish MetOffice data to MQTT
         if (myConfig.MQTT.enabled) {
-            // Publish MetOffice data to MQTT
+           
             mqtt.publishToMQTT({
             source: myConfig.MetOffice.deviceId,
             temperature: metOfficeData.temperature,
@@ -105,16 +101,12 @@ const reportContinuous = async (running) => {
         }
       }
   
-      // SENSOR
-      // Get sensor reading and send to Mongo And/OR MQTT
+      // SENSOR =======================================================================================================================================
+
+      // Get sensor reading and send to Mongo / MQTT
       const sensorData = await sensor.getSensorReading();
 
-      console.log(
-        `<INFO> [${new Date().toISOString()}] - Device (${myConfig.Sensor.deviceId})\treading: ${sensorData.temperature}C, ${sensorData.pressure} hPa, ${sensorData.humidity}%`
-      );
-      
-      
-      
+      logger.createLog ("INFO", "Device (" + myConfig.Sensor.deviceId +")\treading: " + sensorData.temperature + "C, "+ sensorData.pressure + " hPa, " + sensorData.humidity +"%")
       
       
       // Save sensor data to MongoDB
@@ -154,12 +146,12 @@ const reportContinuous = async (running) => {
 
   // Close connections when done
   await sensor.closeSensor();
-  console.log("<INFO> Device stopped");
+  logger.createLog ("INFO", "Sensor stopped")
 };
 
 
 // Start the process
 reportContinuous(running).catch((error) => {
-  console.error("<FATAL> Device stopping:", error);
+  logger.createLog ("FATAL", "Stopping with error " + error)
   process.exit(1);
 });

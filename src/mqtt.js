@@ -1,4 +1,5 @@
 const mqtt = require("mqtt");
+const logger = require("./logger");
 
 let mqttClient;
 
@@ -7,11 +8,12 @@ const mqttConnect = (brokerUrl, mqttOptions) => {
   mqttClient = mqtt.connect(brokerUrl, mqttOptions);
 
   mqttClient.on("connect", () => {
-    console.log("<INFO> MQTT connected to broker: " + brokerUrl);
+    logger.createLog("INFO", "MQTT connected to broker: " + brokerUrl);
   });
 
   mqttClient.on("error", (error) => {
-    console.  error("<ERROR> MQTT connection error:", error);
+    logger.log("ERROR", "MQTT connection error:" + error);
+    process.exit(1)
   });
 };
 
