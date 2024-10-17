@@ -1,0 +1,31 @@
+{
+  "General": {
+    "readingIntervalSeconds": 600
+  },
+  "Sensor": {
+    "deviceId": "bme280_dev",
+    "i2cBusNumber": 1,
+    "i2cAddress": "0x76",
+    "MQTTtopic": "homeassistant/bme280_dev"
+  },
+  
+  "MetOffice": {
+    "enabled": true,
+    "deviceId": "MetOffice",
+    "apiKey": "YOUR_METOFFICE_API_KEY",
+    "locationID": 3414,
+    "MQTTtopic" : "homeassistant/metoffice_dev"
+  },
+  "MQTT": {
+    "enabled": true,
+    "brokerUrl": "mqtt://192.168.1.250",
+    "username": "YOURHA_MQTT_USERNAME",
+    "password": "YOURHA_MQTT_PASSWORD"
+  },
+  "MongoDB": {
+    "enabled": true,
+    "url": "mongodb+srv://YOURUSERNAME:YOURPASSWORD@cluster0.1haxi.mongodb.net/YOURDBNAME?retryWrites=true&w=majority",
+    "collection": "dev_collection"
+  }
+}
+
