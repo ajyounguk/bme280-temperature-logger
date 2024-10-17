@@ -79,7 +79,7 @@ const reportContinuous = async (running) => {
             pressure: metOfficeData.pressure,
             humidity: metOfficeData.humidity,
             wind :metOfficeData.wind
-          }, myConfig.MongoDB.collection);
+          }, myConfig.MongoDB.collection, true);
         }
 
         if (myConfig.MQTT.enabled) {
@@ -111,7 +111,7 @@ const reportContinuous = async (running) => {
           pressure: sensorData.pressure,
           humidity: sensorData.humidity,
           wind : null
-        }, myConfig.MongoDB.collection);
+        }, myConfig.MongoDB.collection, false);
 
       }
 
