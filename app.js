@@ -1,4 +1,8 @@
-// Main File (e.g., index.js or app.js)
+// bme280 sensor temperature logger
+
+// This application reads temperature, humidity, and pressure data from a BME280 sensor and the UK Met Office API.
+// It stores sensor and Met Office data in a connected MongoDB collection and/or publishes it to an MQTT topic, enabling integration with Home Assistant.
+
 
 // Required modules
 const fs = require("fs");
@@ -51,8 +55,6 @@ try {
 }
 
 
-
-
 // Main async loop
 const reportContinuous = async (running) => {
 
@@ -74,7 +76,7 @@ const reportContinuous = async (running) => {
 
         metOfficeData = await metoffice.getMetOfficeData(myConfig.MetOffice.locationID, myConfig.MetOffice.apiKey );    
 
-        logger.createLog ("INFO", "Device (" + myConfig.MetOffice.deviceId +")\treading: " + metOfficeData.temperature + "C, "+ metOfficeData.pressure + " hPa, " + metOfficeData.humidity +"%, " + metOfficeData.wind +" mph" )
+        logger.createLog ("INFO", "Device (" + myConfig.MetOffice.deviceId +") Reading: " + metOfficeData.temperature + "C, "+ metOfficeData.pressure + " hPa, " + metOfficeData.humidity +"%, " + metOfficeData.wind +" mph" )
         
       
         // Save metOffice data to MongoDB
@@ -106,7 +108,7 @@ const reportContinuous = async (running) => {
       // Get sensor reading and send to Mongo / MQTT
       const sensorData = await sensor.getSensorReading();
 
-      logger.createLog ("INFO", "Device (" + myConfig.Sensor.deviceId +")\treading: " + sensorData.temperature + "C, "+ sensorData.pressure + " hPa, " + sensorData.humidity +"%")
+      logger.createLog ("INFO", "Device (" + myConfig.Sensor.deviceId +") Reading: " + sensorData.temperature + "C, "+ sensorData.pressure + " hPa, " + sensorData.humidity +"%")
       
       
       // Save sensor data to MongoDB
