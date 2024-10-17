@@ -67,7 +67,7 @@ const reportContinuous = async (running) => {
         metOfficeData = await metoffice.getMetOfficeData(myConfig.MetOffice.locationID, myConfig.MetOffice.APIKey);    
         
         console.log(
-          `<INFO> Device (${myConfig.MetOffice.deviceId}) reading: ${metOfficeData.temperature}C, ${metOfficeData.pressure} hPa, ${metOfficeData.humidity}%, ${metOfficeData.wind} mph`
+          `<INFO> [${new Date().toLocaleString()}] - Device (${myConfig.MetOffice.deviceId}) reading: ${metOfficeData.temperature}C, ${metOfficeData.pressure} hPa, ${metOfficeData.humidity}%, ${metOfficeData.wind} mph`
         );
   
 
@@ -100,7 +100,7 @@ const reportContinuous = async (running) => {
 
       // Log sensor data
       console.log(
-        `<INFO> Device (${myConfig.Sensor.deviceId}) reading: ${sensorData.temperature}C, ${sensorData.pressure} hPa, ${sensorData.humidity}%`
+        `<INFO> [${new Date().toLocaleString()}] - Device (${myConfig.Sensor.deviceId}) reading: ${sensorData.temperature}C, ${sensorData.pressure} hPa, ${sensorData.humidity}%`
       );
 
       // Save sensor data to MongoDB
