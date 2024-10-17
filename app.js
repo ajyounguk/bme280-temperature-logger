@@ -21,6 +21,11 @@ const delay = () => new Promise((resolve) => setTimeout(resolve, myConfig.Genera
 // init running flag
 let running = true;
 
+
+// report status 
+
+console.log (`<INFO> [${new Date().toISOString()}]- Starting with status - MetOffice: ${myConfig.MetOffice.enabled}, MQTT: ${myConfig.MQTT.enabled}, MongoDB: ${myConfig.MongoDB.enabled}`)
+
 // Connect to MongoDB if enabled (via mongo.js)
 if (myConfig.MongoDB.enabled) {
   mongo.mongoConnect(myConfig.MongoDB.url);
@@ -67,10 +72,14 @@ const reportContinuous = async (running) => {
       if (myConfig.MetOffice.enabled) {
 
         metOfficeData = await metoffice.getMetOfficeData(myConfig.MetOffice.locationID, myConfig.MetOffice.apiKey );    
-        
+
         console.log(
-          `<INFO> [${new Date().toLocaleString()}] - Device (${myConfig.MetOffice.deviceId}) reading: ${metOfficeData.temperature}C, ${metOfficeData.pressure} hPa, ${metOfficeData.humidity}%, ${metOfficeData.wind} mph`
+          `<INFO> [${new Date().toISOString()}] - Device (${myConfig.MetOffice.deviceId})\treading: ${metOfficeData.temperature}C, ${metOfficeData.pressure} hPa, ${metOfficeData.humidity}%, ${metOfficeData.wind} mph`
         );
+        
+        
+        
+        
   
 
         // Save metOffice data to MongoDB
@@ -100,11 +109,14 @@ const reportContinuous = async (running) => {
       // Get sensor reading and send to Mongo And/OR MQTT
       const sensorData = await sensor.getSensorReading();
 
-      // Log sensor data
       console.log(
-        `<INFO> [${new Date().toLocaleString()}] - Device (${myConfig.Sensor.deviceId}) reading: ${sensorData.temperature}C, ${sensorData.pressure} hPa, ${sensorData.humidity}%`
+        `<INFO> [${new Date().toISOString()}] - Device (${myConfig.Sensor.deviceId})\treading: ${sensorData.temperature}C, ${sensorData.pressure} hPa, ${sensorData.humidity}%`
       );
-
+      
+      
+      
+      
+      
       // Save sensor data to MongoDB
       if (myConfig.MongoDB.enabled) {
         await mongo.saveToMongo({
