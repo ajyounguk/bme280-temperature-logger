@@ -16,7 +16,13 @@ You can run two Raspberry Pis, capturing temperature data from two different roo
 - `/src`: Contains modules for MQTT, Mongo, MetOffice, sensor, and logging logic.
 - `/config`: Example configuration file.
 - `/screenshots`: Screenshots and illustrations.
-- `/test`: Test apps for MetOffice and sensor functionality in isolation. Both require entries in the config file.
+- `/test`: A couple of simple test apps for sensor functionality in isolation (python and nodejs)
+
+
+#### Note on Pi Zero (Unsupported)
+The LTS version of node is not officially supported on the Pi Zero (32 bit ARMv6) architecture. I could not get the sensor libraries working even with a unnoficial LTS version of Node installed. (see a guide from [Sebastian Mandrean here](https://gist.github.com/mandrean/71f2cbf707025a5983c0fc04d78f3e9a) if you want to try. 
+
+This code has been tested on a ARMv8 64-bit Raspberry Pi 3 Model B Rev 1.2.
 
 #### Installation
 
@@ -39,8 +45,6 @@ Copy the sample configuration file:
 cd config
 cp templog-config-sample.json templog-config.json
 ```
-
-
 
 Edit the configuration `templog-config.json` file. Guidance is provided below:
 
@@ -113,8 +117,6 @@ You can visualize data from different devices using MongoDB Charts. See [MongoDB
 
 #### BME280 Sensor
 
-
-
 Ensure that I2C is enabled on the Pi via `raspi-config` (under `Interface Options` > `I2C`):
 
 ```bash
@@ -137,34 +139,6 @@ i2cdetect -y 0  # for older 256MB Pi
 ```
 - In case of errors, double-check the wiring and bus settings. [There is a guide here](https://www.hackster.io/Shilleh/beginner-tutorial-how-to-connect-raspberry-pi-and-bme280-4fdbd5)
 
-#### NodeJs and Pi Zero
-The modules required by this application require the LTS build of NodeJS however this is not officially supported on the Pi Zero ARMv6 architecture. In order to run you will need an unnoficial build of NodeJS for the LTS release (tested with Node v20.18.0 as at 10/2024).
-There is a guide from [Sebastian Mandrean here](https://gist.github.com/mandrean/71f2cbf707025a5983c0fc04d78f3e9a) that covers the unnoficial installation process below:
-
-``` bash
-# update system
-$ sudo apt update && sudo apt upgrade
-
-# uninstall old node (v10?)
-$ sudo apt remove nodejs npm -y
-
-# install nvm
-$ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
-
-# use 'unofficial builds' in nvm
-$ echo "export NVM_NODEJS_ORG_MIRROR=https://unofficial-builds.nodejs.org/download/release" >> ~/.bashrc
-
-# reload bashrc
-$ source ~/.bashrc
-
-# install latest LTS
-$ nvm install --lts
-$ nvm use --lts
-
-# verify versions
-$ node -v
-$ npm -v
-```
 
 #### Home Assistant Integration
 

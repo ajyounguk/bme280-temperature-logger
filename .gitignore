@@ -105,3 +105,8 @@ dist
 .tern-port
 package-lock.json
 
+
+# python files
+/python/venv
+
+
