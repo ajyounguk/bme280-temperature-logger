@@ -1,0 +1,6 @@
+{
+    "dependencies": {
+      "bme280-sensor": "^0.1.7",
+      "i2c-bus": "^5.2.3"
+    }
+}

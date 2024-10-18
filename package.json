@@ -1,0 +1,19 @@
+{
+  "name": "bme280-temperature-logger",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Andrew Young",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "bme280": "^2.1.1",
+    "mongoose": "^8.7.1",
+    "mqtt": "^5.10.1",
+    "pm2": "^5.4.2"
+  }
+}
