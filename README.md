@@ -2,6 +2,8 @@
 
 ## What is this?
 
+> **Note* - as at 10/24 this repo is probably not going to be maintained going forward as I'm focusing on the [python version of this application here](https://github.com/ajyounguk/bme280-temperature-logger)**
+
 This is a Node.js app designed to run on Raspberry Pi's that periodically records temperature, barometric pressure, and humidity readings from a BME280 sensor and stores the data into a MongoDB database. The app also collects meteorological data from the MetOffice to compare with sensor readings, if required.
 
 The application can be configured to post the sensor and MetOffice data to a MongoDB collection and/or an MQTT topic. This data can be integrated with Home Assistant.
@@ -11,8 +13,6 @@ The application can be configured to post the sensor and MetOffice data to a Mon
 You can run two Raspberry Pis, capturing temperature data from two different rooms (e.g., Sammy's room and Lounge) while also collecting MetOffice data for your area (outside). You can create charts using the free tier of MongoDB Charts (see more in the notes below).
 
 ![mongoChart](/screenshots/mongoChart.png?raw=true)
-
-> *Note* - as at 10/24 this repo is probably not going to be maintained going forward as I'm focusing on the [python version of this application here](https://github.com/ajyounguk/bme280-temperature-logger)
 
 #### Repository Contents
 
