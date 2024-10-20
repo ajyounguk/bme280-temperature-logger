@@ -2,7 +2,7 @@
 
 ## What is this?
 
-> **Note - as at 10/24 this repo is probably not going to be maintained going forward as I'm focusing on the [python version of this application here](https://github.com/ajyounguk/bme280-temperature-logger)**
+> **Note (as of 10/24) This repository is likely no longer maintained, as I've shifted development to the Python version of this application, available [here.](https://github.com/ajyounguk/bme280-temperature-logger)**
 
 This is a Node.js app designed to run on Raspberry Pi's that periodically records temperature, barometric pressure, and humidity readings from a BME280 sensor and stores the data into a MongoDB database. The app also collects meteorological data from the MetOffice to compare with sensor readings, if required.
 
