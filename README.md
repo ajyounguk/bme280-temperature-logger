@@ -12,6 +12,8 @@ You can run two Raspberry Pis, capturing temperature data from two different roo
 
 ![mongoChart](/screenshots/mongoChart.png?raw=true)
 
+> *Note* - as at 10/24 this repo is probably not going to be maintained going forward as I'm focusing on the [python version of this application here](https://github.com/ajyounguk/bme280-temperature-logger)
+
 #### Repository Contents
 
 - `app.js`: Main app. 
